@@ -10,6 +10,18 @@ execute:
 #| message: false
 library(tidyverse)
 library(arrow)
+
+theme_set(
+  theme_minimal(base_size = 12) +
+    theme(
+      plot.title = element_text(face = "bold", color = "#18324B"),
+      plot.subtitle = element_text(color = "#526777"),
+      axis.title = element_text(face = "bold", color = "#18324B"),
+      panel.grid.minor = element_blank(),
+      panel.grid.major = element_line(color = "#E4EBF0"),
+      legend.position = "bottom"
+    )
+)
 ```
 
 ```{r}
@@ -58,12 +70,20 @@ accuracy <- joined |>
 print(accuracy)
 
 ggplot(accuracy, aes(x = time_bucket, y = mean_absolute_error, group = 1)) +
-  geom_line() +
-  geom_point() +
+  geom_line(color = "#167D8D", linewidth = 1.1) +
+  geom_point(color = "#167D8D", fill = "#F2B84B", shape = 21, size = 3.5, stroke = 1) +
+  scale_x_discrete(labels = c(
+    "More than 90 days" = ">90 days",
+    "30 to 90 days" = "30-90 days",
+    "7 to 30 days" = "7-30 days",
+    "1 to 7 days" = "1-7 days",
+    "Final day" = "Final day"
+  )) +
+  scale_y_continuous(labels = scales::label_percent()) +
   labs(
     title = "Prediction markets get smarter near the deadline",
     subtitle = "Mean absolute error in Manifold Markets forecasts, by days remaining",
-    x = "Days remaining",
+    x = "Time to resolution",
     y = "Mean absolute error"
   )
 ```
@@ -73,7 +93,19 @@ final_day <- joined |>
   filter(days_to_resolution == 0)
 
 ggplot(final_day, aes(x = probability)) +
-  geom_histogram()
+  geom_histogram(
+    binwidth = 0.05,
+    boundary = 0,
+    fill = "#167D8D",
+    color = "white",
+    linewidth = 0.3
+  ) +
+  scale_x_continuous(labels = scales::label_percent(), breaks = seq(0, 1, 0.2)) +
+  labs(
+    title = "Final-day forecasts cluster near certainty",
+    x = "Predicted probability",
+    y = "Number of snapshots"
+  )
 ```
 
 ```{r}
@@ -94,13 +126,31 @@ calibration <- final_day |>
 print(calibration)
 
 ggplot(calibration, aes(x = predicted_probability, y = actual_rate)) +
-  geom_abline(slope = 1, intercept = 0, linetype = "dashed") +
-  geom_line() +
-  geom_point(aes(size = n)) +
-  scale_x_continuous(labels = scales::label_percent()) +
-  scale_y_continuous(labels = scales::label_percent()) +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "#8B9AA7") +
+  geom_line(color = "#167D8D", linewidth = 1) +
+  geom_point(
+    aes(size = n),
+    color = "white",
+    fill = "#E07A5F",
+    shape = 21,
+    stroke = 0.8,
+    alpha = 0.9
+  ) +
+  scale_x_continuous(
+    labels = scales::label_percent(),
+    breaks = seq(0, 1, 0.2),
+    limits = c(0, 1)
+  ) +
+  scale_y_continuous(
+    labels = scales::label_percent(),
+    breaks = seq(0, 1, 0.2),
+    limits = c(0, 1)
+  ) +
+  scale_size_continuous(range = c(3, 9)) +
+  coord_equal() +
   labs(
-    title = "Final-day forecasts track outcomes most closely at the extremes",
+    title = "Final-day calibration varies by probability",
+    subtitle = "Actual YES rates versus predicted probabilities, in 10-point bins",
     x = "Predicted probability",
     y = "Actual YES rate",
     size = "Markets in bin"
